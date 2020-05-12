@@ -2,3 +2,5 @@ venv
 __pycache__
 *.mp4
 *.mapping
+*.bin
+*.xml
