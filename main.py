@@ -42,6 +42,7 @@ MQTT_HOST = IPADDRESS
 MQTT_PORT = 3001
 MQTT_KEEPALIVE_INTERVAL = 60
 
+CPU_EXTENSION = "/opt/intel/openvino/deployment_tools/inference_engine/lib/intel64/libcpu_extension_sse4.so"
 
 labels = ["background","person", "bicycle", "car", "motorcycle", "airplane", "bus",
     "train", "truck", "boat", "traffic light", "fire hydrant", 
@@ -70,7 +71,7 @@ def build_argparser():
     parser.add_argument("-i", "--input", required=True, type=str,
                         help="Path to image or video file")
     parser.add_argument("-l", "--cpu_extension", required=False, type=str,
-                        default=None,
+                        default=CPU_EXTENSION,
                         help="MKLDNN (CPU)-targeted custom layers."
                              "Absolute path to a shared library with the"
                              "kernels impl.")
@@ -84,8 +85,8 @@ def build_argparser():
                         "(0.5 by default)")
     return parser
 
-# draw boxes
-def draw_boxes(frame, result, args, width, height):
+# extract bounding boxes and stats 
+def extract_stats(frame, result, args, width, height):
     '''
     Draw bounding boxes onto the frame.
     '''
@@ -93,7 +94,7 @@ def draw_boxes(frame, result, args, width, height):
     for box in result[0][0]: # Output shape is 1x1x100x7
         conf = box[2]
         detected_object = labels[int(box[1])]
-        print(detected_object)
+        #print(detected_object)
 
         #print(conf)
         if conf >= args.prob_threshold and "person" in detected_object:
@@ -107,11 +108,16 @@ def draw_boxes(frame, result, args, width, height):
 
 def connect_mqtt():
     ### TODO: Connect to the MQTT client ###
-    client = None
-
+    client = mqtt.Client()
+    client.connect(MQTT_HOST,MQTT_PORT,MQTT_KEEPALIVE_INTERVAL)
     return client
 
-
+def preprocess_frame(frame, dsize):
+    p_frame = cv2.resize(frame, dsize)
+    p_frame = p_frame.transpose((2,0,1))
+    p_frame = p_frame.reshape(1,*p_frame.shape)
+    return p_frame
+    
 def infer_on_stream(args, client):
     """
     Initialize the inference network, stream video to network,
@@ -128,6 +134,8 @@ def infer_on_stream(args, client):
     start_time=0
     duration=0
     frame_count=0
+    wait_time=57
+    single_image_mode= False
     
     # Initialise the class
     infer_network = Network()
@@ -140,9 +148,30 @@ def infer_on_stream(args, client):
     print(rfcnn_input_shape)
     # width and height input to the model
     dsize = (rfcnn_input_shape[3],rfcnn_input_shape[2])
-
-
+    
+    # single image mode 
+    
+    single_image_format = ['jpg','tif','png','jpeg', 'bmp']
+    if args.input.split(".")[-1].lower() in single_image_format:
+        single_image_mode= True
+        frame = cv2.imread(args.input)
+        height, width, channel = frame.shape
+        p_frame = preprocess_frame(frame, dsize)
+        infer_network.exec_net(p_frame)
+        
+        
+        if infer_network.wait()==0:
+            ### TODO: Get the results of the inference request ###
+            infer_result = infer_network.get_output()
+            
+            ### TODO: Extract any desired stats from the results ###
+            
+            single_frame, present_count = extract_stats(frame, infer_result, args, width, height)
+            ### TODO: Write an output image if `single_image_mode` ###            
+            cv2.imwrite("image.jpg", single_frame)
+        
     ### TODO: Handle the input stream ###
+    
     input_stream = cv2.VideoCapture(args.input)
     input_stream.open(args.input)
     
@@ -150,10 +179,10 @@ def infer_on_stream(args, client):
     height = int(input_stream.get(4))
     
     # Create a video output to see your result
-    out = cv2.VideoWriter('out.mp4',0x00000021,30,(width,height))
+    #out = cv2.VideoWriter('out.mp4',0x00000021,30,(width,height))
 
     ### TODO: Loop until stream is over ###
-    while input_stream.isOpened():
+    while input_stream.isOpened() and not single_image_mode:
         ### TODO: Read from the video capture ###
         flag, frame = input_stream.read()
         if not flag:
@@ -161,56 +190,71 @@ def infer_on_stream(args, client):
         key_pressed = cv2.waitKey(60)
 
         ### TODO: Pre-process the image as needed ###
-        p_frame = cv2.resize(frame, dsize)
-        p_frame = p_frame.transpose((2,0,1))
-        p_frame = p_frame.reshape(1,*p_frame.shape)
+        p_frame = preprocess_frame(frame, dsize)
         ### TODO: Start asynchronous inference for specified request ###
+        
         infer_network.exec_net(p_frame)
 
         ### TODO: Wait for the result ###
         if infer_network.wait()==0:
-            
+
             ### TODO: Get the results of the inference request ###
             infer_result = infer_network.get_output()
             
-            # update the frame to include results
-            frame, present_count = draw_boxes(frame, infer_result, args, width, height)
+            ### TODO: Extract any desired stats from the results ###
+            
+            out_frame, present_count = extract_stats(frame, infer_result, args, width, height)
+
+            ### TODO: Calculate and send relevant information on ###
+            ### current_count, total_count and duration to the MQTT server ###
+            ### Topic "person": keys of "count" and "total" ###
+            ### Topic "person/duration": key of "duration" ###
             
             # when a person is in the video
             if present_count>preceding_count:
                 start_time=time.time()
                 total_count+=present_count - preceding_count
                 frame_count = 0
-                print("total count is ", total_count)
+                
+                payload_total_count = {
+                    "total" : total_count
+                }
+                client.publish("person", json.dumps(payload_total_count))
+            
             # when there is one less person
-            if present_count<preceding_count and frame_count < 60:
+            if present_count<preceding_count and frame_count < wait_time:
                 present_count=preceding_count
                 frame_count+=1
+            
             # when there is one less person for up to 30 frames
-            if present_count<preceding_count and frame_count==60:
+            if present_count<preceding_count and frame_count == wait_time:
                 duration = int(time.time() - start_time)
-                #print("duration is ", duration)
+                
+                payload_duration = {
+                    "duration": duration
+                }
+                client.publish("person/duration", json.dumps(payload_duration))
+            
             preceding_count=present_count
-            print("total count", total_count)
-            #out.write(frame)
-        print("total_count", total_count)
+            
+            payload_present_count = {
+                "count" : present_count
+            }
+            client.publish("person", json.dumps(payload_present_count))
+
+            ### TODO: Send the frame to the FFMPEG server ###            
+        sys.stdout.buffer.write(out_frame)
+        sys.stdout.flush()
         if key_pressed == 27:
             break
+
+  
     # -- release the out writer, capture and destroy any opencv windows
-    out.release()
     input_stream.release()
     cv2.destroyAllWindows()
+    client.disconnect()
 
-            ### TODO: Extract any desired stats from the results ###
 
-            ### TODO: Calculate and send relevant information on ###
-            ### current_count, total_count and duration to the MQTT server ###
-            ### Topic "person": keys of "count" and "total" ###
-            ### Topic "person/duration": key of "duration" ###
-
-        ### TODO: Send the frame to the FFMPEG server ###
-
-        ### TODO: Write an output image if `single_image_mode` ###
 
 
 def main():

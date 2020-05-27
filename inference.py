@@ -47,15 +47,25 @@ class Network:
         ### TODO: Load the model ###
         model_xml = model
         model_bin = os.path.splitext(model_xml)[0] + ".bin"
-        ### TODO: Check for supported layers ###
         self.plugin = IECore()
-        ### TODO: Add any necessary extensions ###
-        if cpu_extension and "CPU" in device:
-            self.plugin.add_extension(cpu_extension, device)
         self.network = IENetwork(model=model_xml, weights=model_bin)
+
+        
+        ### TODO: Check for supported layers ###
+        supported_layers = self.plugin.query_network(network=self.network, device_name=device)
+        unsupported_layers = [l for l in self.network.layers.keys() if l not in supported_layers]
+        if len(unsupported_layers)!=0:
+            ### TODO: Add any necessary extensions ###
+            if cpu_extension and "CPU" in device:
+                self.plugin.add_extension(cpu_extension, device)
+            else:
+                print("Add CPU extension and device type or run layer with original framework")
+                exit(1)
+
         self.exec_network = self.plugin.load_network(self.network, device)
         self.input_blob = next(iter(self.network.inputs))
         self.output_blob = next(iter(self.network.outputs))
+            
         ### TODO: Return the loaded inference plugin ###
         
         ### Note: You may need to update the function parameters. ###
