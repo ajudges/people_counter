@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # function for linux setup
-function install_Nodejs_and_dependencies {
+function install_Nodejs_and_dependencies{
     echo "Nodejs and its dependencies"
     echo "if you have used Chris Lea's Node.js PPA. Enter "1" for yes and "0" for no"
     read Nodejs_hist
@@ -47,5 +47,13 @@ echo $p_name
 if [ "$p_name" == 'Linux' ]
 then
     echo $(lsb_release -i -s)
-
+    
+#   install_Nodejs_and_dependencies
+    install_Nodejs_and_dependencies
+    
+#   install_other_dependencies
+    install_other_dependencies
+    
+#   install_npm
+    install_npm
 fi    
