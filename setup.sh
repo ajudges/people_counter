@@ -40,6 +40,9 @@ function install_npm{
 
 }
 
+function install ffmpeg{
+npm install ffmpeg
+}
 # obtain  os type
 p_name=`uname`
 echo $p_name
@@ -56,4 +59,7 @@ then
     
 #   install_npm
     install_npm
+    
+#   install ffmpeg
+    install ffmpeg
 fi    
