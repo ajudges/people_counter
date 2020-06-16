@@ -86,14 +86,14 @@ source /opt/intel/openvino/bin/setupvars.sh -pyver 3.5
 On the same terminal (i.e. the fourth terminal), run: 
 
 ```
-python3 main.py -i <location of video> -m model/frozen_inference_graph.xml -d GPU -pt 0.6 | ffmpeg -v warning -f rawvideo -pixel_format bgr24 -video_size 768x432 -framerate 24 -i - http://0.0.0.0:3004/fac.ffm
+python3 main.py -i <location of video> -m model/frozen_inference_graph.xml -d CPU -pt 0.6 | ffmpeg -v warning -f rawvideo -pixel_format bgr24 -video_size 768x432 -framerate 24 -i - http://0.0.0.0:3004/fac.ffm
 ```
 
 #### To capture from camera,
 On the same terminal (i.e. the fourth terminal), run: 
 
 ```
-python3 main.py -i 0 -m model/frozen_inference_graph.xml -d GPU -pt 0.6 | ffmpeg -v warning -f rawvideo -pixel_format bgr24 -video_size 768x432 -framerate 24 -i - http://0.0.0.0:3004/fac.ffm
+python3 main.py -i 0 -m model/frozen_inference_graph.xml -d CPU -pt 0.6 | ffmpeg -v warning -f rawvideo -pixel_format bgr24 -video_size 768x432 -framerate 24 -i - http://0.0.0.0:3004/fac.ffm
 ```
 
 ## View Output
