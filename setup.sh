@@ -3,7 +3,7 @@
 echo "Installing nodejs, modules required for mqtt server and ffmpeg"
 
 # function for linux setup
-function install_Nodejs_and_dependencies{
+function install_Nodejs_and_dependencies {
     echo "Nodejs and its dependencies"
     echo "if you have used Chris Lea's Node.js PPA. Enter "1" for yes and "0" for no"
     read Nodejs_hist
@@ -22,7 +22,7 @@ function install_Nodejs_and_dependencies{
     sudo apt-get install nodejs
 }
 
-function install_other_dependencies{
+function install_other_dependencies {
     sudo apt update
     sudo apt-get install python3-pip
     pip3 install numpy
@@ -33,7 +33,7 @@ function install_other_dependencies{
 
 }
 
-function install_npm{
+function install_npm {
     sudo npm install npm -g 
     rm -rf node_modules
     npm cache clean
@@ -42,7 +42,7 @@ function install_npm{
 
 }
 
-function install ffmpeg{
+function install_ffmpeg {
 npm install ffmpeg
 }
 
