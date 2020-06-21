@@ -34,17 +34,25 @@ function install_other_dependencies {
 }
 
 function install_npm {
-    sudo npm install npm -g 
-    rm -rf node_modules
-    npm cache clean
-    npm config set registry "http://registry.npmjs.org"
+    sudo apt install npm
+    
+    cd webservice/server
     npm install
 
+    cd ../ui
+    npm install
+
+    # if 
+
+
+    # sudo npm install npm -g 
+    # rm -rf node_modules
+    # npm cache clean
+    # npm config set registry "http://registry.npmjs.org"
+    # npm install
+
 }
 
-function install_ffmpeg {
-npm install ffmpeg
-}
 
 # Mac function to install nodejs
 function mac_install_nodejs {
@@ -94,8 +102,8 @@ then
 #   install_npm
     install_npm
     
-#   install ffmpeg
-    install ffmpeg
+
+
 elif [ "$p_name" == 'Darwin']
 then
     echo "I am a Mac"
