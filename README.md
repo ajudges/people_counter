@@ -1,5 +1,5 @@
 # people_counter
-This application is designed to count the number of people and their duration in an environment. It's use cuts across different applications such as counting the number of people in a mall or using it to limit access of people to a place. 
+This application is designed to count the number of people and their duration in an environment. Its use cuts across different applications such as counting the number of people in a mall or using it to limit access of people to a place. 
 
 ## Guide for running the app
 ### Prerequisite
