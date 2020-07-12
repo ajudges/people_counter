@@ -11,8 +11,6 @@ OpenVINO toolkit uses the model optimizer to convert the known layers in a model
 
 The process behind converting custom layers involves a preliminary check for unsupported layers using model and the device type, via the query_network method on the IECore class. If there are unsupported layers, a custom layer can then be added with the add_extension method using the required library and deployment device type. 
 
-Some of the potential reasons for handling custom layers are...
-
 ## Comparing Model Performance
 
 My method(s) to compare models before and after conversion to Intermediate Representations
